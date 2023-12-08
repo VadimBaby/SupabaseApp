@@ -6,13 +6,33 @@
 //
 
 import Foundation
+import Combine
 
 final class TodosViewModel: ObservableObject {
     @Published private(set) var todos: [TodoModel] = [] 
+    @Published private(set) var sortedTodos: [TodoModel] = []
     
     private var tasks: [Task<Void, Never>] = []
     
     private let service = SupabaseManager.shared
+    
+    private var cancellables = Set<AnyCancellable>()
+    
+    init() {
+        addSubcriber()
+    }
+    
+    deinit {
+        cancellables.forEach{ $0.cancel()}
+    }
+    
+    func addSubcriber() {
+        $todos
+            .sink { todos in
+                self.sortedTodos = todos.sorted{ $0.timestamp > $1.timestamp }
+            }
+            .store(in: &cancellables)
+    }
     
     func fetchTodos() async {
         do {
@@ -52,6 +72,24 @@ final class TodosViewModel: ObservableObject {
                 try await service.updateDoneTodo(id: id, done: done)
             } catch {
                 print(error.localizedDescription)
+            }
+        }
+    }
+    
+    func deleteTodo(indexSet: IndexSet) {
+        let oldTodos = sortedTodos
+        
+        sortedTodos.remove(atOffsets: indexSet)
+        
+        todos = sortedTodos
+        
+        indexSet.forEach { index in
+            Task {
+                do {
+                    try await service.deleteTodo(id: oldTodos[index].id)
+                } catch {
+                    print(error.localizedDescription)
+                }
             }
         }
     }

@@ -53,6 +53,10 @@ actor SupabaseManager {
         try await client.database.from("todos").update(["done": done.description]).eq("id", value: id).execute()
     }
     
+    func deleteTodo(id: Int) async throws {
+        try await client.database.from("todos").delete().eq("id", value: id).execute()
+    }
+    
     func signOut() async throws {
         try await client.auth.signOut()
     }

@@ -21,9 +21,12 @@ struct HomeView: View {
                 ProgressView()
             } else {
                 List {
-                    ForEach(viewModel.todos.sorted{$0.timestamp > $1.timestamp}) { todo in
+                    ForEach(viewModel.sortedTodos) { todo in
                         getTodoView(todo: todo)
                     }
+                    .onDelete(perform: { indexSet in
+                        viewModel.deleteTodo(indexSet: indexSet)
+                    })
                 }
             }
         }
